@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=0.8" />
+<title>WOLFRAM'S LYRE</title>
+<script src="snd.js"></script>
+<script src="map.js"></script>
+<script src="mouse.js"></script>
+<script src="start.js"></script>
+<script type="text/javascript">
+
+    var hasStarted = false;
+    var soundInit = false;
+    var infoWindow = false;
+    var isPlaying = false;
+    var allBuffersLoaded = false;
+    var tempo = 500;
+    var timer;
+    const scale = 2;
+    const w = 600;
+    const h = 480;
+    const width = w*scale;
+    const height = h*scale;
+    const tileW = 60;
+    const tileH = 60;
+    var mapW = 20;
+    var mapH = 16;
+    var gameMap = [];
+    var currentRule = [0,0,0,1,1,1,1,0];
+    for(let i = 0; i < mapW*mapH; i++) { gameMap[i] = 0; }
+    gameMap[toIndex(10,mapH-1)] = 1;
+    var ctx = null;
+    var currentSecond = 0, frameCount = 0, framesLastSecond = 0, lastFrameTime = 0;
+    var mousePos = [];
+    var loading;
+    var instrumentChoice = 'w';
+
+    //var masterGain = audioCtx.createGain();
+
+    //Viewport Scanning
+    var viewport = { screen : [0,0] };
+
+    window.onload = function()
+    {
+        ctx = document.getElementById('game').getContext("2d");
+        requestAnimationFrame(drawGame);
+        ctx.font = "bold 10pt sans-serif";
+
+        //window.addEventListener('mousemove', function(e) { getHoverOver(e) });
+        window.addEventListener('click', function(e) { clickHandler(e) });
+        window.addEventListener('mousemove', function(e) { mousePos = getHoverOver(e); });
+        
+        viewport.screen = [document.getElementById('game').width,
+            document.getElementById('game').height];
+
+        //tileset code goes here
+        
+    };
+
+    
+    function drawGame()
+    {
+        if(ctx==null) { return; }
+        var currentFrameTime = Date.now();
+        var timeElapsed = currentFrameTime - lastFrameTime;
+        var sec = Math.floor(Date.now()/1000);
+        if(sec!=currentSecond)
+        {
+            currentSecond = sec;
+            framesLastSecond = frameCount;
+            frameCount = 1;
+        }
+        else { frameCount++; }
+
+        //////////////////////////////draw background
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, viewport.screen[0], viewport.screen[1]);
+
+        //draw map
+        drawCurrentMap();
+
+        if(hasStarted) //app is playing 
+        { 
+            //draw hover-over shape
+            if(mousePos[1] == mapH-1 && (mousePos[0] >= 0 && mousePos[0] < mapW)) {  
+                document.body.style.cursor = 'pointer'; 
+                ctx.fillStyle = "rgba(0,0,0,0.3)";
+                ctx.fillRect(mousePos[0]*tileW,mousePos[1]*tileH,tileW,tileH); //for pixel version, no *tileW/*tileH
+
+            }
+            else { document.body.style.cursor = 'default'; }
+            
+        }
+        // else if(!hasStarted) //loading sounds
+        // { loadbarHandler(); }
+
+        // frameRate();
+        lastFrameTime = currentFrameTime;
+        requestAnimationFrame(drawGame);
+    }
+
+
+</script>
+
+</head>
+<body>
+<div id="main">
+    <div id="loadscreen">
+        <h1 id="title">WOLFRAM'S LYRE</h1>
+        <p id="description">A musical widget exploring <br> 1-dimensional cellular automata <br>in sound.</p>
+        <!-- <div id="loadbarfull"> </div>
+        <div id="loadbarloading"></div> -->
+        <p id="loadtext">Click anywhere to load sounds.</p>
+    </div>
+    <div id=mainscreen>
+        <div id="leftdiv">
+            <p id="r0">Current Rule: <br>30</p>
+            <div id="r1" class="container">
+                <div class="upper">
+                    <img src="squareblk.png" class="square one">
+                    <img src="squareblk.png" class="square two">
+                    <img src="squareblk.png" class="square three">
+                </div>
+                <div class="lower">
+                    <img src="square.png" class="square invisible four">
+                    <img id='cell0' onclick="changeRule(0)" src="square.png" class="square five">
+                    <img src="square.png" class="square invisible six">
+                </div>
+            </div>
+            <div id="r2" class="container">
+                <div class="upper">
+                    <img src="squareblk.png" class="square one">
+                    <img src="squareblk.png" class="square two">
+                    <img src="square.png" class="square three">
+                </div>
+                <div class="lower">
+                    <img src="square.png" class="square invisible four">
+                    <img id='cell1' onclick="changeRule(1)" src="square.png" class="square five">
+                    <img src="square.png" class="square invisible six">
+                </div>
+            </div>
+            <div id="r3" class="container">
+                <div class="upper">
+                    <img src="squareblk.png" class="square one">
+                    <img src="square.png" class="square two">
+                    <img src="squareblk.png" class="square three">
+                </div>
+                <div class="lower">
+                    <img src="square.png" class="square invisible four">
+                    <img id='cell2' onclick="changeRule(2)" src="square.png" class="square five">
+                    <img src="square.png" class="square invisible six">
+                </div>
+            </div>
+            <div id="r4" class="container">
+                <div class="upper">
+                    <img src="squareblk.png" class="square one">
+                    <img src="square.png" class="square two">
+                    <img src="square.png" class="square three">
+                </div>
+                <div class="lower">
+                    <img src="square.png" class="square invisible four">
+                    <img id='cell3' onclick="changeRule(3)" src="squareblk.png" class="square five">
+                    <img src="square.png" class="square invisible six">
+                </div>
+            </div>
+            <div id="r5" class="container">
+                <div class="upper">
+                    <img src="square.png" class="square one">
+                    <img src="squareblk.png" class="square two">
+                    <img src="squareblk.png" class="square three">
+                </div>
+                <div class="lower">
+                    <img src="square.png" class="square invisible four">
+                    <img id='cell4' onclick="changeRule(4)" src="squareblk.png" class="square five">
+                    <img src="square.png" class="square invisible six">
+                </div>
+            </div>
+            <div id="r6" class="container">
+                <div class="upper">
+                    <img src="square.png" class="square one">
+                    <img src="squareblk.png" class="square two">
+                    <img src="square.png" class="square three">
+                </div>
+                <div class="lower">
+                    <img src="square.png" class="square invisible four">
+                    <img id='cell5' onclick="changeRule(5)" src="squareblk.png" class="square five">
+                    <img src="square.png" class="square invisible six">
+                </div>
+            </div>
+            <div id="r7" class="container">
+                <div class="upper">
+                    <img src="square.png" class="square one">
+                    <img src="square.png" class="square two">
+                    <img src="squareblk.png" class="square three">
+                </div>
+                <div class="lower">
+                    <img src="square.png" class="square invisible four">
+                    <img id='cell6' onclick="changeRule(6)" src="squareblk.png" class="square five">
+                    <img src="square.png" class="square invisible six">
+                </div>
+            </div>
+            <div id="r8" class="container">
+                <div class="upper">
+                    <img src="square.png" class="square one">
+                    <img src="square.png" class="square two">
+                    <img src="square.png" class="square three">
+                </div>
+                <div class="lower">
+                    <img src="square.png" class="square invisible four">
+                    <img id='cell7' onclick="changeRule(7)" src="square.png" class="square five">
+                    <img src="square.png" class="square invisible six">
+                </div>
+            </div>
+        </div>
+        <canvas id="game" width="1200" height="960"></canvas>
+        <div id="rightdiv">
+            <button id="play" onclick="togglePlay()">Play</button>
+            <div id="tempodiv">
+                <label for="tempo">
+                Tempo:
+              </label>
+              <input onchange="changeTempo()" type="number" step="1" id="tempo" min="60" max="999" value="120" />
+            </div>
+            <button onclick="shuffle()">Shuffle</button>
+            <button onclick="clearRow()">Clear</button>
+            <div id="palettediv">
+                <label for="palette">Sound Palette:<br></label>
+                <select name="palette" onchange="toggleInstrument()" id="palette">
+                    <option value="wood">Marimba</option>
+                    <option value="harp">Harp</option>
+                    <option value="prep">Prep Piano</option>
+                    <option value="percussion">Percussion</option>
+                    <!-- <option value="metal">Metal Keys</option> -->
+                </select>
+            </div>
+            <button onclick="clearAll()">Reset</button>
+        </div>
+    </div>
+</div> 
+</body>
+</html>
